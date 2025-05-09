@@ -134,3 +134,13 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Prisma specific
+prisma/.env
+prisma/db.sqlite
+prisma/db.sqlite-journal
+*/prisma/dev.db
+*/prisma/migrations/dev/
+
+# Vercel
+.vercel
