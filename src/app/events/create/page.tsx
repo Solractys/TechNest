@@ -68,8 +68,12 @@ export default function CreateEventPage() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/signin');
+    } else if (status === 'authenticated' && (!session || !session.user || !session.user.id)) {
+      // If session is invalid (missing user ID), redirect to signin
+      setError('Sessão inválida. Por favor, faça login novamente.');
+      router.push('/signin');
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   // Preview image
   useEffect(() => {
@@ -166,12 +170,19 @@ export default function CreateEventPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(eventData),
+        credentials: 'include', // Ensure cookies are sent with the request
       });
       
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao criar evento');
+        if (response.status === 401) {
+          // Unauthorized - session issue
+          setError('Sessão expirada ou inválida. Por favor, faça login novamente.');
+          setTimeout(() => router.push('/signin'), 2000);
+          return;
+        }
+        throw new Error(data.error || data.message || 'Erro ao criar evento');
       }
       
       // Redirect to event page
@@ -179,14 +190,42 @@ export default function CreateEventPage() {
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
+        console.error('Error creating event:', err.message);
+        
+        // If the error mentions organizerId, suggest re-authentication
+        if (err.message.includes('organizer') || err.message.includes('Organizer') || err.message.includes('ID')) {
+          setError(`${err.message} - Tente fazer logout e login novamente para atualizar sua sessão.`);
+        }
       } else {
         setError('Ocorreu um erro ao criar o evento');
+        console.error('Error creating event:', err);
       }
-      console.error('Error creating event:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Check session validity
+  useEffect(() => {
+    const checkSessionValidity = async () => {
+      if (status === 'authenticated' && session?.user) {
+        try {
+          // Simple API call to check if the session is valid
+          const response = await fetch('/api/user/profile', {
+            credentials: 'include',
+          });
+          
+          if (!response.ok) {
+            setError('Sua sessão parece estar inválida. Por favor, faça login novamente.');
+          }
+        } catch (err) {
+          console.error('Error validating session:', err);
+        }
+      }
+    };
+    
+    checkSessionValidity();
+  }, [status, session]);
 
   if (status === 'loading') {
     return (

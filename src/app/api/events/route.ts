@@ -151,10 +151,20 @@ export async function POST(request: Request) {
     // Get the user's session
     const session = await getServerAuthSession();
     
+    console.log("Session debug:", JSON.stringify(session, null, 2));
+    
     // Check if user is authenticated
     if (!session || !session.user) {
       return NextResponse.json(
         { error: "Não autorizado. Faça login para criar um evento." },
+        { status: 401 }
+      );
+    }
+    
+    // Check if user.id exists
+    if (!session.user.id) {
+      return NextResponse.json(
+        { error: "ID do usuário não encontrado na sessão." },
         { status: 401 }
       );
     }
@@ -188,6 +198,21 @@ export async function POST(request: Request) {
       ? `${slug}-${Math.random().toString(36).substring(2, 7)}`
       : slug;
 
+    // Verify the user exists in the database before attempting to create the event
+    const userExists = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true }
+    });
+    
+    if (!userExists) {
+      return NextResponse.json(
+        { error: `Usuário com ID ${session.user.id} não encontrado no banco de dados.` },
+        { status: 404 }
+      );
+    }
+    
+    console.log(`Creating event with organizerId: ${session.user.id}`);
+    
     // Create the event
     const event = await prisma.event.create({
       data: {
@@ -221,12 +246,33 @@ export async function POST(request: Request) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating event:', error);
+    
+    // Check for specific Prisma errors
     if (error instanceof Error) {
+      const errorMessage = error.message;
+      
+      // Handle foreign key constraint violation
+      if (errorMessage.includes('Foreign key constraint') && errorMessage.includes('Event_organizerId_fkey')) {
+        return NextResponse.json(
+          { 
+            error: "O ID do organizador não é válido ou não existe no banco de dados.",
+            details: errorMessage,
+            tip: "Tente fazer logout e login novamente para obter uma nova sessão."
+          },
+          { status: 400 }
+        );
+      }
+      
+      // General error with details
       return NextResponse.json(
-        { error: `Erro ao criar evento: ${error.message}` },
+        { 
+          error: `Erro ao criar evento: ${errorMessage}`,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        },
         { status: 500 }
       );
     }
+    
     return NextResponse.json(
       { error: 'Erro ao criar evento' },
       { status: 500 }
