@@ -191,7 +191,7 @@ export default async function EventsPage({
               defaultValue={category || ""}
             >
               <option value="">Todas as categorias</option>
-              <option value="frontend">Frontend</option>
+              <option value="Startups">Startups</option>
               <option value="backend">Backend</option>
               <option value="devops">DevOps</option>
               <option value="data-science">Data Science</option>
