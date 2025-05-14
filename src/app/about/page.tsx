@@ -290,8 +290,8 @@ export default function AboutPage() {
                 </h3>
                 <p className="text-gray-600">
                   Você pode entrar em contato através do e-mail
-                  contato@technest.app ou pelo formulário de contato disponível
-                  na plataforma.
+                  technestappcontact@gmail.com ou pelo formulário de contato
+                  disponível na plataforma.
                 </p>
               </div>
             </div>

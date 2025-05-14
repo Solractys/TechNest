@@ -94,11 +94,7 @@ export default function Footer() {
                   Termos de Uso
                 </Link>
               </li>
-              <li>
-                <Link href="/contact" className="text-gray-400 hover:text-white">
-                  Contato
-                </Link>
-              </li>
+              {/* Contact link removed */}
             </ul>
           </div>
         </div>

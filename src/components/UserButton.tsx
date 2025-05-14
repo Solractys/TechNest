@@ -5,11 +5,37 @@ import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function UserButton() {
+interface UserButtonProps {
+  isMobile?: boolean;
+  onCloseMenu?: () => void;
+}
+
+export default function UserButton({ isMobile = false, onCloseMenu }: UserButtonProps) {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
 
   if (!session) {
+    if (isMobile) {
+      return (
+        <div className="flex flex-col space-y-4">
+          <Link
+            href="/signin"
+            className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+            onClick={onCloseMenu}
+          >
+            Entrar
+          </Link>
+          <Link
+            href="/signup"
+            className="mt-4 block w-full rounded-md bg-primary-600 px-3 py-2 text-center text-base font-semibold text-white shadow-sm hover:bg-primary-700"
+            onClick={onCloseMenu}
+          >
+            Criar conta
+          </Link>
+        </div>
+      );
+    }
+    
     return (
       <div className="hidden lg:flex lg:flex-1 lg:justify-end space-x-4">
         <Link
@@ -28,6 +54,73 @@ export default function UserButton() {
     );
   }
 
+  // For mobile view, display a simplified user profile with links
+  if (isMobile) {
+    return (
+      <div>
+        <div className="flex items-center px-3 py-3 mb-4 border-b border-gray-200">
+          <div className="relative h-10 w-10 rounded-full overflow-hidden bg-gray-100 border border-gray-300 mr-3">
+            {session.user.image ? (
+              <Image
+                src={session.user.image}
+                alt={session.user.name || 'User profile'}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center bg-primary-100">
+                <span className="text-primary-700 text-sm font-medium">
+                  {(session.user.name?.charAt(0) || session.user.email?.charAt(0) || 'U').toUpperCase()}
+                </span>
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="text-base font-semibold text-gray-900">{session.user.name || 'Usuário'}</p>
+            <p className="text-xs text-gray-500 truncate">{session.user.email}</p>
+          </div>
+        </div>
+        
+        <Link
+          href="/profile"
+          className="block -mx-3 px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50 rounded-lg"
+          onClick={onCloseMenu}
+        >
+          Perfil
+        </Link>
+        
+        <Link
+          href="/my-events"
+          className="block -mx-3 px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50 rounded-lg"
+          onClick={onCloseMenu}
+        >
+          Meus Eventos
+        </Link>
+        
+        {session.user.role === 'ADMIN' && (
+          <Link
+            href="/admin"
+            className="block -mx-3 px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50 rounded-lg"
+            onClick={onCloseMenu}
+          >
+            Admin
+          </Link>
+        )}
+        
+        <button
+          onClick={() => {
+            if (onCloseMenu) onCloseMenu();
+            signOut({ callbackUrl: '/' });
+          }}
+          className="mt-4 block w-full rounded-md bg-gray-100 px-3 py-2.5 text-center text-base font-semibold text-gray-900 hover:bg-gray-200"
+        >
+          Sair
+        </button>
+      </div>
+    );
+  }
+
+  // Desktop view with dropdown
   return (
     <div className="relative">
       <button

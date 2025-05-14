@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
 import UserButton from "./UserButton";
+import { useSession } from "next-auth/react";
 
 interface NavItem {
   name: string;
@@ -171,20 +172,7 @@ export default function Header() {
                   ))}
                 </div>
                 <div className="py-6">
-                  <Link
-                    href="/signin"
-                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Entrar
-                  </Link>
-                  <Link
-                    href="/signup"
-                    className="mt-4 block w-full rounded-md bg-primary-600 px-3 py-2 text-center text-base font-semibold text-white shadow-sm hover:bg-primary-700"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Criar conta
-                  </Link>
+                  <UserButton isMobile={true} onCloseMenu={() => setMobileMenuOpen(false)} />
                 </div>
               </div>
             </div>
