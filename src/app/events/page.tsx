@@ -191,12 +191,17 @@ export default async function EventsPage({
               defaultValue={category || ""}
             >
               <option value="">Todas as categorias</option>
+              <option value="UX/UI Design">UX/UI Design</option>
+              <option value="Product Management">Product Management</option>
+              <option value="IoT">IoT</option>
+              <option value="Game Dev">Game Dev</option>
+              <option value="Tech Career">Tech Career</option>
+              <option value="Networking">Networking</option>
               <option value="Startups">Startups</option>
-              <option value="backend">Backend</option>
-              <option value="devops">DevOps</option>
-              <option value="data-science">Data Science</option>
-              <option value="cloud">Cloud</option>
-              <option value="ai-ml">AI & ML</option>
+              <option value="Tech for Good">Tech for Good</option>
+              <option value="AR/VR">AR/VR</option>
+              <option value="Agile">Agile</option>
+              <option value="Digital Marketing">Digital Marketing</option>
             </select>
           </div>
 
