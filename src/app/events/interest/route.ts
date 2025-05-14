@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
+    // Verificar autenticação
     const session = await getServerAuthSession();
     
     if (!session?.user) {
@@ -13,8 +14,62 @@ export async function POST(req: Request) {
       );
     }
 
-    const { eventId, status } = await req.json();
+    // Inicializar variáveis
+    let eventId: string | null = null;
+    let status: string | null = null;
+    let action: string | null = null;
+    
+    // Processar corpo da requisição de acordo com o content-type
+    const contentType = req.headers.get('content-type') || '';
+    
+    try {
+      if (contentType.includes('application/json')) {
+        // Processar como JSON
+        const body = await req.json();
+        eventId = body.eventId;
+        status = body.status;
+        action = body.action;
+        console.log("[Interest API] Recebido body JSON:", { eventId, status, action });
+      } else if (contentType.includes('application/x-www-form-urlencoded') || 
+                contentType.includes('multipart/form-data')) {
+        // Processar como FormData
+        const formData = await req.formData();
+        eventId = formData.get('eventId') as string;
+        status = formData.get('status') as string;
+        action = formData.get('action') as string;
+        console.log("[Interest API] Recebido FormData:", { eventId, status, action });
+      } else {
+        // Tentar como texto e depois como JSON ou URL encoded
+        const text = await req.text();
+        console.log("[Interest API] Recebido texto:", text);
+        
+        try {
+          // Tentar JSON
+          const data = JSON.parse(text);
+          eventId = data.eventId;
+          status = data.status;
+          action = data.action;
+          console.log("[Interest API] Parsed como JSON:", { eventId, status, action });
+        } catch (jsonError) {
+          // Se falhar, verificar URL encoded
+          if (text.includes('=')) {
+            const params = new URLSearchParams(text);
+            eventId = params.get('eventId');
+            status = params.get('status');
+            action = params.get('action');
+            console.log("[Interest API] Parsed como URL encoded:", { eventId, status, action });
+          }
+        }
+      }
+    } catch (parseError) {
+      console.error("[Interest API] Erro ao processar corpo da requisição:", parseError);
+      return NextResponse.json(
+        { error: "Formato de requisição inválido" },
+        { status: 400 }
+      );
+    }
 
+    // Validar eventId
     if (!eventId) {
       return NextResponse.json(
         { error: "ID do evento é obrigatório" },
@@ -22,16 +77,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate status
-    const validStatuses = ["INTERESTED", "GOING", "NOT_GOING"];
-    if (status && !validStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: "Status inválido" },
-        { status: 400 }
-      );
-    }
+    console.log(`[Interest API] Processando action="${action}" para eventId=${eventId} do usuário ${session.user.id}`);
 
-    // Check if the event exists
+    // Verificar se o evento existe
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       select: {
@@ -58,7 +106,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if user is not trying to express interest in their own event
+    // Verificar se usuário é organizador
     if (event.organizerId === session.user.id) {
       return NextResponse.json(
         { error: "Você não pode marcar interesse no seu próprio evento" },
@@ -66,7 +114,39 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if the event is at max capacity for "GOING" status
+    // Verificar interesse existente
+    const existingInterest = await prisma.userEvent.findUnique({
+      where: {
+        userId_eventId: {
+          userId: session.user.id,
+          eventId,
+        },
+      },
+    });
+
+    // Processar ação de remover interesse
+    if (action === "remove") {
+      console.log("[Interest API] Processando remoção de interesse");
+      
+      if (!existingInterest) {
+        return NextResponse.json(
+          { error: "Interesse não encontrado" },
+          { status: 404 }
+        );
+      }
+
+      await prisma.userEvent.delete({
+        where: { id: existingInterest.id },
+      });
+
+      return NextResponse.json({
+        message: "Interesse removido com sucesso"
+      });
+    }
+
+    // Para outras ações, processar como adicionar/atualizar interesse
+    
+    // Verificar capacidade máxima para status "GOING"
     if (
       status === "GOING" &&
       event.maxAttendees !== null &&
@@ -78,35 +158,31 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if user already expressed interest
-    const existingInterest = await prisma.userEvent.findUnique({
-      where: {
-        userId_eventId: {
-          userId: session.user.id,
-          eventId,
-        },
-      },
-    });
+    // Validar status
+    const validStatuses = ["INTERESTED", "GOING", "NOT_GOING"];
+    const finalStatus = status || "INTERESTED";
+    
+    if (!validStatuses.includes(finalStatus)) {
+      return NextResponse.json(
+        { error: "Status inválido" },
+        { status: 400 }
+      );
+    }
 
+    // Adicionar ou atualizar interesse
     if (existingInterest) {
-      // Update the existing interest
+      // Atualizar interesse existente
       const updatedInterest = await prisma.userEvent.update({
-        where: {
-          id: existingInterest.id,
-        },
+        where: { id: existingInterest.id },
         data: {
-          status: status || "INTERESTED",
+          status: finalStatus as "INTERESTED" | "GOING" | "NOT_GOING",
         },
         select: {
           id: true,
           status: true,
-          userId: true,
-          eventId: true,
           event: {
-            select: {
-              title: true,
-            },
-          },
+            select: { title: true }
+          }
         },
       });
 
@@ -114,34 +190,31 @@ export async function POST(req: Request) {
         interest: updatedInterest,
         message: "Status atualizado com sucesso",
       });
+    } else {
+      // Criar novo interesse
+      const interest = await prisma.userEvent.create({
+        data: {
+          userId: session.user.id,
+          eventId,
+          status: finalStatus as "INTERESTED" | "GOING" | "NOT_GOING",
+        },
+        select: {
+          id: true,
+          status: true,
+          event: {
+            select: { title: true }
+          }
+        },
+      });
+
+      return NextResponse.json({
+        interest,
+        message: "Interesse registrado com sucesso",
+      }, { status: 201 });
     }
 
-    // Create a new interest
-    const interest = await prisma.userEvent.create({
-      data: {
-        userId: session.user.id,
-        eventId,
-        status: status || "INTERESTED",
-      },
-      select: {
-        id: true,
-        status: true,
-        userId: true,
-        eventId: true,
-        event: {
-          select: {
-            title: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json({
-      interest,
-      message: "Interesse registrado com sucesso",
-    }, { status: 201 });
   } catch (error) {
-    console.error("Error managing event interest:", error);
+    console.error("[Interest API] Erro não tratado:", error);
     
     if (error instanceof Error) {
       return NextResponse.json(
@@ -178,7 +251,9 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Check if the interest exists and belongs to the user
+    console.log(`[Interest API] Removendo interesse via DELETE para eventId=${eventId} do usuário ${session.user.id}`);
+
+    // Verificar se o interesse existe e pertence ao usuário
     const userEvent = await prisma.userEvent.findUnique({
       where: {
         userId_eventId: {
@@ -195,7 +270,7 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Delete the interest
+    // Remover o interesse
     await prisma.userEvent.delete({
       where: {
         id: userEvent.id,
@@ -206,7 +281,15 @@ export async function DELETE(req: Request) {
       message: "Interesse removido com sucesso",
     });
   } catch (error) {
-    console.error("Error removing event interest:", error);
+    console.error("[Interest API] Erro ao remover interesse:", error);
+    
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: `Erro ao remover interesse: ${error.message}` },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Erro ao remover interesse no evento" },
       { status: 500 }

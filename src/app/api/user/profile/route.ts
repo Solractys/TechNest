@@ -1,33 +1,52 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { getToken } from "next-auth/jwt";
+import { getToken, type JWT } from "next-auth/jwt";
 import { headers } from "next/headers";
+
+// Validate environment variables
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
+if (!NEXTAUTH_SECRET) {
+  console.error("Warning: NEXTAUTH_SECRET environment variable is not set");
+}
 
 export async function GET(request: Request) {
   try {
     const session = await getServerAuthSession();
-    
-    // Enhanced session validation and debugging
-    console.log("Session data:", JSON.stringify(session, null, 2));
-    
+
+    // Enhanced session validation and debugging - log limited session info
+    console.log(
+      "Session present:",
+      !!session,
+      "User present:",
+      !!session?.user,
+      "User ID:",
+      session?.user?.id?.substring(0, 5) + "...",
+    );
+
     if (!session?.user) {
       return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
+        {
+          error: "Não autorizado",
+          message: "Faça login para acessar esta página",
+        },
+        { status: 401 },
       );
     }
-    
+
+    // Check if user.id exists
     if (!session.user.id) {
       return NextResponse.json(
-        { error: "ID do usuário não encontrado na sessão", sessionData: session },
-        { status: 400 }
+        { error: "ID do usuário não encontrado na sessão" },
+        { status: 400 },
       );
     }
 
     // Verify user exists in database before proceeding
-    console.log(`Looking up user with ID: ${session.user.id}`);
-    
+    console.log(
+      `Looking up user with ID: ${session.user.id.substring(0, 5)}...`,
+    );
+
     const user = await prisma.user.findUnique({
       where: {
         id: session.user.id,
@@ -66,42 +85,65 @@ export async function GET(request: Request) {
     });
 
     if (!user) {
-      console.log(`User with ID ${session.user.id} not found in database`);
+      console.log(
+        `User with ID ${session.user.id.substring(0, 5)}... not found in database`,
+      );
       return NextResponse.json(
-        { 
-          error: "Usuário não encontrado", 
+        {
+          error: "Usuário não encontrado",
           userId: session.user.id,
           sessionValid: true,
-          suggestion: "Tente fazer logout e login novamente para obter uma nova sessão."
+          suggestion:
+            "Tente fazer logout e login novamente para obter uma nova sessão.",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Get the JWT token for additional validation
-    const token = await getToken({ 
+    const requestHeaders = Object.fromEntries((await headers()).entries());
+    const token = await getToken({
       cookieName: process.env.NEXTAUTH_COOKIE_NAME || "next-auth.session-token",
-      secret: process.env.NEXTAUTH_SECRET,
+      secret: NEXTAUTH_SECRET || "fallback-secret-do-not-use-in-production",
       secureCookie: process.env.NODE_ENV === "production",
-      // Pass request headers instead of the request object
-      headers: headers() as any,
+      // Convert headers to expected format
+      headers: requestHeaders,
     });
-    
-    return NextResponse.json({
-      ...user,
+
+    // Remove potentially sensitive data before returning
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      events: user.events,
+      interestedIn: user.interestedIn,
       sessionValid: true,
       tokenValid: !!token,
-      isTokenMatching: token?.sub === session.user.id
-    });
+      isTokenMatching: token?.sub === session.user.id,
+    };
+
+    return NextResponse.json(safeUser);
   } catch (error) {
     console.error("Error fetching user profile:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("Detailed error:", errorMessage);
+
+    // Check for specific errors related to missing environment variables
+    if (errorMessage.includes("secret") || errorMessage.includes("JWT")) {
+      console.error(
+        "Possible missing or invalid NEXTAUTH_SECRET environment variable",
+      );
+    }
+
     return NextResponse.json(
-      { 
+      {
         error: "Erro ao carregar perfil",
-        details: error instanceof Error ? error.message : "Unknown error",
-        suggestion: "Verifique sua sessão ou tente fazer login novamente."
+        details: errorMessage,
+        suggestion: "Verifique sua sessão ou tente fazer login novamente.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -109,37 +151,55 @@ export async function GET(request: Request) {
 export async function PUT(req: Request) {
   try {
     const session = await getServerAuthSession();
-    
-    // Detailed session check for PUT requests
-    console.log("Update profile - Session data:", JSON.stringify(session, null, 2));
-    
+
+    // Detailed session check for PUT requests - log limited info
+    console.log(
+      "Update profile - Session present:",
+      !!session,
+      "User ID present:",
+      !!session?.user?.id,
+    );
+
+    // Check for environment variables in development mode
+    if (process.env.NODE_ENV === "development" && !NEXTAUTH_SECRET) {
+      console.warn("Warning: Missing NEXTAUTH_SECRET in development mode");
+    }
+
     if (!session?.user) {
       return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
+        {
+          error: "Não autorizado",
+          message: "Faça login para atualizar seu perfil",
+        },
+        { status: 401 },
       );
     }
-    
+
     if (!session.user.id) {
       return NextResponse.json(
-        { error: "ID do usuário não encontrado na sessão", sessionData: session },
-        { status: 400 }
+        {
+          error: "ID do usuário não encontrado na sessão",
+          suggestion:
+            "Faça logout e login novamente para obter uma sessão válida.",
+        },
+        { status: 400 },
       );
     }
-    
+
     // Verify user exists before updating
     const userExists = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true }
+      select: { id: true },
     });
-    
+
     if (!userExists) {
       return NextResponse.json(
-        { 
+        {
           error: "Usuário não encontrado no banco de dados",
-          suggestion: "Faça logout e login novamente para obter uma sessão válida."
+          suggestion:
+            "Faça logout e login novamente para obter uma sessão válida.",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -170,17 +230,33 @@ export async function PUT(req: Request) {
     });
   } catch (error) {
     console.error("Error updating user profile:", error);
-    
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("Detailed error:", errorMessage);
+
     if (error instanceof Error) {
+      // Avoid exposing error stack in production
       return NextResponse.json(
-        { error: `Erro ao atualizar perfil: ${error.message}` },
-        { status: 500 }
+        {
+          error: `Erro ao atualizar perfil: ${error.message}`,
+          details:
+            process.env.NODE_ENV === "development"
+              ? error.stack
+              : "Erro interno",
+          suggestion: "Verifique sua sessão ou tente fazer login novamente.",
+        },
+        { status: 500 },
       );
     }
-    
+
     return NextResponse.json(
-      { error: "Erro ao atualizar perfil" },
-      { status: 500 }
+      {
+        error: "Erro ao atualizar perfil",
+        details: "Erro desconhecido durante a atualização",
+        suggestion:
+          "Tente novamente mais tarde ou entre em contato com o suporte.",
+      },
+      { status: 500 },
     );
   }
 }

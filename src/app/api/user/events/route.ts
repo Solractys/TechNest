@@ -5,12 +5,9 @@ import prisma from "@/lib/prisma";
 export async function GET() {
   try {
     const session = await getServerAuthSession();
-    
+
     if (!session?.user) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     // Fetch events organized by the user
@@ -19,7 +16,7 @@ export async function GET() {
         organizerId: session.user.id,
       },
       orderBy: {
-        date: 'asc',
+        date: "asc",
       },
       select: {
         id: true,
@@ -44,7 +41,7 @@ export async function GET() {
         userId: session.user.id,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       select: {
         id: true,
@@ -72,7 +69,7 @@ export async function GET() {
     console.error("Error fetching user events:", error);
     return NextResponse.json(
       { error: "Erro ao carregar eventos" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -80,12 +77,9 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerAuthSession();
-    
+
     if (!session?.user) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const { eventId, status } = await req.json();
@@ -93,7 +87,7 @@ export async function POST(req: Request) {
     if (!eventId) {
       return NextResponse.json(
         { error: "ID do evento é obrigatório" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -105,7 +99,7 @@ export async function POST(req: Request) {
     if (!event) {
       return NextResponse.json(
         { error: "Evento não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -113,7 +107,7 @@ export async function POST(req: Request) {
     if (event.organizerId === session.user.id) {
       return NextResponse.json(
         { error: "Você não pode marcar interesse no seu próprio evento" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -134,7 +128,7 @@ export async function POST(req: Request) {
           id: existingInterest.id,
         },
         data: {
-          status: status || 'INTERESTED',
+          status: status || "INTERESTED",
         },
       });
 
@@ -149,7 +143,7 @@ export async function POST(req: Request) {
       data: {
         userId: session.user.id,
         eventId,
-        status: status || 'INTERESTED',
+        status: status || "INTERESTED",
       },
     });
 
@@ -161,7 +155,7 @@ export async function POST(req: Request) {
     console.error("Error managing event interest:", error);
     return NextResponse.json(
       { error: "Erro ao gerenciar interesse no evento" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -169,21 +163,18 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const session = await getServerAuthSession();
-    
+
     if (!session?.user) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
-    const userEventId = searchParams.get('id');
+    const userEventId = searchParams.get("id");
 
     if (!userEventId) {
       return NextResponse.json(
         { error: "ID do interesse é obrigatório" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -198,7 +189,7 @@ export async function DELETE(req: Request) {
     if (!userEvent) {
       return NextResponse.json(
         { error: "Interesse não encontrado ou não pertence a você" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -214,7 +205,7 @@ export async function DELETE(req: Request) {
     console.error("Error removing event interest:", error);
     return NextResponse.json(
       { error: "Erro ao remover interesse no evento" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
