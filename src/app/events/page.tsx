@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
 import ptBR from "date-fns/locale/pt-BR";
+import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Eventos Tech em São Paulo | TechNest.app",
@@ -61,6 +62,20 @@ type ApiResponse = {
   events: Event[];
   pagination: PaginationInfo;
 };
+async function getCategories() {
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    return categories;
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return [];
+  }
+}
 
 // Função para formatar data de maneira segura
 function formatDateSafe(dateStr: string, formatStr: string) {
@@ -83,10 +98,14 @@ export default async function EventsPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   // Extrair parâmetros de consulta da URL - await para garantir que as propriedades estão carregadas
+  //
   const resolvedParams = await Promise.resolve(searchParams);
-  
+  const categories = await getCategories();
+
   const page =
-    typeof resolvedParams.page === "string" ? parseInt(resolvedParams.page, 10) : 1;
+    typeof resolvedParams.page === "string"
+      ? parseInt(resolvedParams.page, 10)
+      : 1;
   const category =
     typeof resolvedParams.category === "string"
       ? resolvedParams.category
@@ -94,9 +113,13 @@ export default async function EventsPage({
   const date =
     typeof resolvedParams.date === "string" ? resolvedParams.date : undefined;
   const format =
-    typeof resolvedParams.format === "string" ? resolvedParams.format : undefined;
+    typeof resolvedParams.format === "string"
+      ? resolvedParams.format
+      : undefined;
   const search =
-    typeof resolvedParams.search === "string" ? resolvedParams.search : undefined;
+    typeof resolvedParams.search === "string"
+      ? resolvedParams.search
+      : undefined;
 
   // Construir parâmetros de consulta
   const queryParams = new URLSearchParams();
@@ -187,17 +210,11 @@ export default async function EventsPage({
               defaultValue={category || ""}
             >
               <option value="">Todas as categorias</option>
-              <option value="ux-ui-design">UX/UI Design</option>
-              <option value="product-management">Product Management</option>
-              <option value="iot">IoT</option>
-              <option value="game-dev">Game Dev</option>
-              <option value="tech-career">Tech Career</option>
-              <option value="networking">Networking</option>
-              <option value="startups">Startups</option>
-              <option value="tech-for-good">Tech for Good</option>
-              <option value="ar-vr">AR/VR</option>
-              <option value="agile">Agile</option>
-              <option value="digital-marketing">Digital Marketing</option>
+              {categories.map((cat) => (
+                <option key={cat.slug} value={cat.slug}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
           </div>
 

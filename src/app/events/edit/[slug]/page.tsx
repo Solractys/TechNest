@@ -250,7 +250,7 @@ export default function EditEventPage() {
         published,
       };
 
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetch(`/api/events/${slug}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -319,7 +319,7 @@ export default function EditEventPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
+    <div className="max-w-5xl mx-auto px-4 py-10 text-slate-700">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Editar Evento</h1>
         <p className="text-gray-600">Atualize as informações do seu evento</p>
@@ -898,4 +898,3 @@ export default function EditEventPage() {
     </div>
   );
 }
-

@@ -115,17 +115,20 @@ export async function PUT(
 
     // Extract category IDs for the connection
     const { categories, ...eventData } = data;
-
-    // Update the event
+    
+    // Update the event including categories
     const updatedEvent = await prisma.event.update({
       where: { id: event.id },
       data: {
         ...eventData,
-        categories: {
-          set: [],  // Clear existing connections
-          connect: categories?.map((categoryId: string) => ({ id: categoryId })) || [],
-        }
+        categories: categories ? {
+          set: [], // Clear existing connections
+          connect: categories.map((categoryId: string) => ({ id: categoryId }))
+        } : undefined
       },
+      include: {
+        categories: true
+      }
     });
 
     return NextResponse.json(updatedEvent);

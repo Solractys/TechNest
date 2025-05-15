@@ -222,10 +222,10 @@ export default function AboutPage() {
           </p>
 
           <div className="inline-block">
-            <button
-              className="flex items-center space-x-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1"
+            <Link
+              className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1"
               // This will be replaced with Stripe integration in the future
-              onClick={() => alert("Integração com Stripe em breve!")}
+              href="https://buy.stripe.com/test_00wbJ10kR5hr1MTfLMbII00"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -242,7 +242,7 @@ export default function AboutPage() {
                 />
               </svg>
               <span>Pague-me um Café</span>
-            </button>
+            </Link>
           </div>
 
           <p className="text-sm text-gray-500 mt-4">
