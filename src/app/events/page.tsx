@@ -117,13 +117,8 @@ export default async function EventsPage({
 
   try {
     // Construir URL de forma segura para Next.js App Router
-    const protocol =
-      process.env.NODE_ENV === "development" ? "http:" : "https:";
     const host = process.env.VERCEL_URL || "localhost:3000";
-    const apiUrl = new URL(
-      `/api/events?${queryParams.toString()}`,
-      `${protocol}//${host}`,
-    );
+    const apiUrl = `https://${host}/api/events?${queryParams.toString()}`;
 
     // Usar URL absoluta para evitar erros de parsing
     const res = await fetch(apiUrl.toString(), {
