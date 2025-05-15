@@ -225,7 +225,7 @@ export default function AboutPage() {
             <Link
               className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1"
               // This will be replaced with Stripe integration in the future
-              href="https://buy.stripe.com/test_00wbJ10kR5hr1MTfLMbII00"
+              href="https://buy.stripe.com/7sIg2tdhk0cY9vGbII"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
