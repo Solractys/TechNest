@@ -82,19 +82,21 @@ export default async function EventsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  // Extrair parâmetros de consulta da URL
+  // Extrair parâmetros de consulta da URL - await para garantir que as propriedades estão carregadas
+  const resolvedParams = await Promise.resolve(searchParams);
+  
   const page =
-    typeof searchParams.page === "string" ? parseInt(searchParams.page, 10) : 1;
+    typeof resolvedParams.page === "string" ? parseInt(resolvedParams.page, 10) : 1;
   const category =
-    typeof searchParams.category === "string"
-      ? searchParams.category
+    typeof resolvedParams.category === "string"
+      ? resolvedParams.category
       : undefined;
   const date =
-    typeof searchParams.date === "string" ? searchParams.date : undefined;
+    typeof resolvedParams.date === "string" ? resolvedParams.date : undefined;
   const format =
-    typeof searchParams.format === "string" ? searchParams.format : undefined;
+    typeof resolvedParams.format === "string" ? resolvedParams.format : undefined;
   const search =
-    typeof searchParams.search === "string" ? searchParams.search : undefined;
+    typeof resolvedParams.search === "string" ? resolvedParams.search : undefined;
 
   // Construir parâmetros de consulta
   const queryParams = new URLSearchParams();
@@ -116,12 +118,11 @@ export default async function EventsPage({
   };
 
   try {
-    // Construir URL de forma segura para Next.js App Router
-    const host = process.env.VERCEL_URL || "localhost:3000";
-    const apiUrl = `https://${host}/api/events?${queryParams.toString()}`;
+    // Usar URL absoluta para a API quando executando no servidor
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const apiUrl = `${baseUrl}/api/events?${queryParams.toString()}`;
 
-    // Usar URL absoluta para evitar erros de parsing
-    const res = await fetch(apiUrl.toString(), {
+    const res = await fetch(apiUrl, {
       cache: "no-store", // Não cachear para ver sempre dados atualizados
     });
 
@@ -186,17 +187,17 @@ export default async function EventsPage({
               defaultValue={category || ""}
             >
               <option value="">Todas as categorias</option>
-              <option value="UX/UI Design">UX/UI Design</option>
-              <option value="Product Management">Product Management</option>
-              <option value="IoT">IoT</option>
-              <option value="Game Dev">Game Dev</option>
-              <option value="Tech Career">Tech Career</option>
-              <option value="Networking">Networking</option>
-              <option value="Startups">Startups</option>
-              <option value="Tech for Good">Tech for Good</option>
-              <option value="AR/VR">AR/VR</option>
-              <option value="Agile">Agile</option>
-              <option value="Digital Marketing">Digital Marketing</option>
+              <option value="ux-ui-design">UX/UI Design</option>
+              <option value="product-management">Product Management</option>
+              <option value="iot">IoT</option>
+              <option value="game-dev">Game Dev</option>
+              <option value="tech-career">Tech Career</option>
+              <option value="networking">Networking</option>
+              <option value="startups">Startups</option>
+              <option value="tech-for-good">Tech for Good</option>
+              <option value="ar-vr">AR/VR</option>
+              <option value="agile">Agile</option>
+              <option value="digital-marketing">Digital Marketing</option>
             </select>
           </div>
 
