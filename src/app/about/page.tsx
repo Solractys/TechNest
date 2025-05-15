@@ -244,7 +244,6 @@ export default function AboutPage() {
               <span>Pague-me um Café</span>
             </Link>
           </div>
-          </p>
         </div>
       </section>
 
