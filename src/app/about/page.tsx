@@ -244,10 +244,6 @@ export default function AboutPage() {
               <span>Pague-me um Café</span>
             </Link>
           </div>
-
-          <p className="text-sm text-gray-500 mt-4">
-            Em breve, os pagamentos serão processados de forma segura via
-            Stripe, para que você possa apoiar este trabalho solo.
           </p>
         </div>
       </section>
