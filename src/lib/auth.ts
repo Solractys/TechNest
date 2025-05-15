@@ -68,7 +68,7 @@ export const authOptions: NextAuthOptions = {
 
         const isCorrectPassword = await compare(
           credentials.password,
-          user.password
+          user.password,
         );
 
         if (!isCorrectPassword) {
@@ -90,6 +90,7 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     session: async ({ session, token }) => {
+      console.log("DEBUG AUTH GOOGLE", { session, token });
       if (session?.user) {
         if (token.sub) {
           session.user.id = token.sub;
@@ -127,3 +128,4 @@ export const isAuthorized = async (roles: string[]) => {
   const session = await getServerAuthSession();
   return session?.user && roles.includes(session.user.role);
 };
+

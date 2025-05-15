@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -256,4 +255,3 @@ export default function SignIn() {
     </div>
   );
 }
-

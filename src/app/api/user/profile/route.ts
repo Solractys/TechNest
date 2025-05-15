@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getToken, type JWT } from "next-auth/jwt";
-import { headers } from "next/headers";
+import { NextRequest } from "next/server";
 
 // Validate environment variables
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
@@ -10,7 +10,7 @@ if (!NEXTAUTH_SECRET) {
   console.error("Warning: NEXTAUTH_SECRET environment variable is not set");
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerAuthSession();
 
@@ -101,14 +101,7 @@ export async function GET(request: Request) {
     }
 
     // Get the JWT token for additional validation
-    const requestHeaders = Object.fromEntries((await headers()).entries());
-    const token = await getToken({
-      cookieName: process.env.NEXTAUTH_COOKIE_NAME || "next-auth.session-token",
-      secret: NEXTAUTH_SECRET || "fallback-secret-do-not-use-in-production",
-      secureCookie: process.env.NODE_ENV === "production",
-      // Convert headers to expected format
-      headers: requestHeaders,
-    });
+    const token = await getToken({ req: request, secret: NEXTAUTH_SECRET });
 
     // Remove potentially sensitive data before returning
     const safeUser = {

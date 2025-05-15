@@ -66,16 +66,15 @@ export default function CreateEventPage() {
 
   // Redirect if not logged in
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/signin");
-    } else if (
-      status === "authenticated" &&
-      (!session || !session.user || !session.user.id)
-    ) {
-      // If session is invalid (missing user ID), redirect to signin
-      setError("Sessão inválida. Por favor, faça login novamente.");
-      router.push("/signin");
-    }
+    if (status === "unauthenticated") router.push("/signin");
+    // } else if (
+    //   status === "authenticated" &&
+    //   (!session || !session.user || !session.user.id)
+    // ) {
+    //   // If session is invalid (missing user ID), redirect to signin
+    //   setError("Sessão inválida. Por favor, faça login novamente.");
+    //   router.push("/signin");
+    // }
   }, [status, session, router]);
 
   // Preview image
